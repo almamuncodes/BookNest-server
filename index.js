@@ -27,7 +27,7 @@ const client = new mongodb_1.MongoClient(uri, {
 });
 const run = async () => {
     try {
-        await client.connect();
+        // await client.connect();
         const db = client.db("booknest");
         const itemCollection = db.collection("book");
         const bookmarkCollection = db.collection("bookmark");
@@ -81,7 +81,7 @@ const run = async () => {
             const bookmarks = await bookmarkCollection.find({ userId }).toArray();
             res.send(bookmarks);
         });
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     }
     finally {
