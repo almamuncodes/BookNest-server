@@ -6,6 +6,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 dotenv.config();
+const mongodb_1 = require("mongodb");
 
 const uri = process.env.MONGODB_URI;
 
@@ -71,7 +72,7 @@ const run = async () => {
       const result = await itemCollection.insertOne(items);
       res.send(result);
     })
-  // বুকমার্ক করা বা রিমুভ করা (Toggle)
+  // toggle bookmark
 app.post('/api/bookmarks', async (req, res) => {
   const { userId, bookId } = req.body;
   const query = { userId, bookId };
@@ -86,12 +87,80 @@ app.post('/api/bookmarks', async (req, res) => {
   }
 });
 
-// ইউজারের সব বুকমার্ক পাওয়া
+// get user bookmark
 app.get('/api/bookmarks/:userId', async (req, res) => {
   const { userId } = req.params;
   const bookmarks = await bookmarkCollection.find({ userId }).toArray();
   res.send(bookmarks);
 });
+
+
+// Get all items posted by a specific user 
+app.get('/api/items/user/:email', async (req, res) => {
+    const { email } = req.params;
+    const result = await itemCollection.find({ createdBy: email }).toArray();
+    res.send(result);
+});
+
+// Update (edit) an item
+app.patch('/api/items/:id', async (req, res) => {
+    const { id } = req.params;
+    if (!mongodb_1.ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid ID" });
+    }
+
+    const { requesterEmail, ...updatedData } = req.body;
+    if (!requesterEmail) {
+        return res.status(400).send({ message: "requesterEmail is required" });
+    }
+
+    const query = { _id: new mongodb_1.ObjectId(id) };
+    const book = await itemCollection.findOne(query);
+
+    if (!book) {
+        return res.status(404).send({ message: "Book not found" });
+    }
+    if (book.createdBy !== requesterEmail) {
+        return res.status(403).send({ message: "You don't have permission to edit this book" });
+    }
+
+    const updateDoc = { $set: updatedData };
+    const result = await itemCollection.updateOne(query, updateDoc);
+    res.send(result);
+});
+
+// Delete an item
+app.delete('/api/items/:id', async (req, res) => {
+    const { id } = req.params;
+    if (!mongodb_1.ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid ID" });
+    }
+
+    const { requesterEmail } = req.body;
+    if (!requesterEmail) {
+        return res.status(400).send({ message: "requesterEmail is required" });
+    }
+
+    const query = { _id: new mongodb_1.ObjectId(id) };
+    const book = await itemCollection.findOne(query);
+
+    if (!book) {
+        return res.status(404).send({ message: "Book not found" });
+    }
+    if (book.createdBy !== requesterEmail) {
+        return res.status(403).send({ message: "You don't have permission to delete this book" });
+    }
+
+    const result = await itemCollection.deleteOne(query);
+    res.send(result);
+});
+
+
+
+
+
+
+
 
 
     // await client.db("admin").command({ ping: 1 });
